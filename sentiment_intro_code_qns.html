@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BERT Code-Specific Flashcards (210 Cards)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .flashcard-container {
+            perspective: 1000px;
+            margin-bottom: 20px;
+        }
+        .flashcard {
+            width: 450px;
+            height: 300px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background-color: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 16px;
+            overflow-y: auto;
+        }
+        .back {
+            transform: rotateY(180deg);
+            background-color: #e0f7fa;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .card-counter {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="flashcard-container">
+        <div class="flashcard" id="flashcard">
+            <div class="front" id="question"></div>
+            <div class="back" id="answer"></div>
+        </div>
+    </div>
+    <div class="nav-buttons">
+        <button onclick="prevCard()">Previous</button>
+        <button onclick="nextCard()">Next</button>
+    </div>
+    <div class="card-counter" id="counter"></div>
+
+    <script>
+        const flashcards = [
+            // 1. !pip install transformers datasets torch
+            { question: "How do you install the required libraries for fine-tuning BERT in Colab?", answer: "!pip install transformers datasets torch" },
+            { question: "Why do we need to install transformers, datasets, and torch in Colab?", answer: "Transformers provides BERT models and tokenizers, datasets gives access to IMDb, and torch is the PyTorch framework for training." },
+            { question: "What if you only install torch and skip transformers?", answer: "You’d lack BERT models and tokenizers, so the code would fail when trying to load them." },
+
+            // 2. import torch
+            { question: "How do you import PyTorch for tensor operations?", answer: "import torch" },
+            { question: "Why do we import torch in this project?", answer: "Torch provides tensor operations and GPU support needed to train BERT." },
+            { question: "What if you import tensorflow instead of torch?", answer: "The code would break since it’s written for PyTorch, not TensorFlow." },
+
+            // 3. from transformers import BertTokenizer
+            { question: "How do you import BERT’s tokenizer from Transformers?", answer: "from transformers import BertTokenizer" },
+            { question: "Why do we import BertTokenizer specifically?", answer: "It’s designed to preprocess text into tokens BERT understands." },
+            { question: "What if you import a different tokenizer like GPT2Tokenizer?", answer: "It wouldn’t match BERT’s WordPiece tokenization, causing errors." },
+
+            // 4. from transformers import BertForSequenceClassification
+            { question: "How do you import the BERT model for sequence classification?", answer: "from transformers import BertForSequenceClassification" },
+            { question: "Why do we use BertForSequenceClassification here?", answer: "It adds a classification head to BERT for sentiment analysis." },
+            { question: "What if you use BertModel instead?", answer: "You’d get raw BERT without a classification layer, requiring manual setup." },
+
+            // 5. from transformers import AdamW
+            { question: "How do you import the AdamW optimizer from Transformers?", answer: "from transformers import AdamW" },
+            { question: "Why do we import AdamW from transformers?", answer: "It’s optimized for BERT with weight decay, unlike plain PyTorch Adam." },
+            { question: "What if you use torch.optim.Adam instead?", answer: "It’d work but miss weight decay, potentially causing overfitting." },
+
+            // 6. from datasets import load_dataset
+            { question: "How do you import the function to load datasets?", answer: "from datasets import load_dataset" },
+            { question: "Why do we need load_dataset from datasets?", answer: "It simplifies loading and processing datasets like IMDb." },
+            { question: "What if you manually download IMDb instead?", answer: "You’d need extra code to parse and format it, making it less efficient." },
+
+            // 7. dataset = load_dataset("imdb")
+            { question: "How do you load the IMDb dataset?", answer: "dataset = load_dataset(\"imdb\")" },
+            { question: "Why do we load the IMDb dataset specifically?", answer: "It provides labeled movie reviews for sentiment analysis." },
+            { question: "What if you load 'sst2' instead of 'imdb'?", answer: "You’d get a different sentiment dataset with shorter sentences." },
+
+            // 8. train_data = dataset["train"]
+            { question: "How do you extract the training split from the IMDb dataset?", answer: "train_data = dataset[\"train\"]" },
+            { question: "Why do we extract the train split?", answer: "It’s the portion used to fine-tune BERT on sentiment analysis." },
+            { question: "What if you skip this and use the full dataset?", answer: "You’d mix train/test data, ruining evaluation." },
+
+            // 9. test_data = dataset["test"]
+            { question: "How do you extract the test split from the IMDb dataset?", answer: "test_data = dataset[\"test\"]" },
+            { question: "Why do we need the test split?", answer: "It’s used to evaluate BERT’s performance after training." },
+            { question: "What if you use 'train' for both?", answer: "You’d overfit and get misleadingly high accuracy." },
+
+            // 10. tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+            { question: "How do you load the BERT tokenizer for uncased text?", answer: "tokenizer = BertTokenizer.from_pretrained(\"bert-base-uncased\")" },
+            { question: "Why do we use 'bert-base-uncased' here?", answer: "It’s a pre-trained, smaller BERT model ignoring case for simplicity." },
+            { question: "What if you use 'bert-base-cased' instead?", answer: "It’d distinguish case, potentially improving accuracy on case-sensitive data." },
+
+            // 11. def tokenize_function(examples):
+            { question: "How do you define a function to tokenize dataset examples?", answer: "def tokenize_function(examples):" },
+            { question: "Why do we define a tokenize_function?", answer: "It processes dataset text into BERT-compatible tokens." },
+            { question: "What if you skip defining this function?", answer: "You’d need to tokenize manually, losing batch efficiency." },
+
+            // 12. return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=128)
+            { question: "How do you tokenize text with padding and truncation?", answer: "return tokenizer(examples[\"text\"], padding=\"max_length\", truncation=True, max_length=128)" },
+            { question: "Why do we set max_length to 128?", answer: "It limits sequence length for memory efficiency and speed." },
+            { question: "What if you set max_length to 512?", answer: "It’d handle longer texts but use more memory and slow training." },
+
+            // 13. train_data = train_data.map(tokenize_function, batched=True)
+            { question: "How do you apply tokenization to the training data?", answer: "train_data = train_data.map(tokenize_function, batched=True)" },
+            { question: "Why do we use batched=True in map?", answer: "It processes multiple examples at once, speeding up tokenization." },
+            { question: "What if you set batched=False?", answer: "It’d tokenize one-by-one, slowing down preprocessing." },
+
+            // 14. test_data = test_data.map(tokenize_function, batched=True)
+            { question: "How do you apply tokenization to the test data?", answer: "test_data = test_data.map(tokenize_function, batched=True)" },
+            { question: "Why do we tokenize test data similarly?", answer: "Consistency ensures the model can process it during evaluation." },
+            { question: "What if you skip tokenizing test data?", answer: "The model couldn’t process it, causing errors." },
+
+            // 15. train_data.set_format("torch", columns=["input_ids", "attention_mask", "label"])
+            { question: "How do you set the training data format to PyTorch tensors?", answer: "train_data.set_format(\"torch\", columns=[\"input_ids\", \"attention_mask\", \"label\"])" },
+            { question: "Why do we select these specific columns?", answer: "They’re the inputs (input_ids, attention_mask) and target (label) BERT needs." },
+            { question: "What if you omit 'label' from columns?", answer: "You’d lose the target, breaking supervised training." },
+
+            // 16. test_data.set_format("torch", columns=["input_ids", "attention_mask", "label"])
+            { question: "How do you set the test data format to PyTorch tensors?", answer: "test_data.set_format(\"torch\", columns=[\"input_ids\", \"attention_mask\", \"label\"])" },
+            { question: "Why do we format test data the same way?", answer: "It ensures compatibility with the model during evaluation." },
+            { question: "What if you format it differently?", answer: "Inconsistent formats would crash the evaluation." },
+
+            // 17. model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+            { question: "How do you load BERT for sequence classification with 2 labels?", answer: "model = BertForSequenceClassification.from_pretrained(\"bert-base-uncased\", num_labels=2)" },
+            { question: "Why do we set num_labels to 2?", answer: "It matches our binary sentiment task (positive/negative)." },
+            { question: "What if you set num_labels to 3?", answer: "It’d expect 3 classes, mismatching our 2-class data." },
+
+            // 18. device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            { question: "How do you check for GPU availability and set the device?", answer: "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")" },
+            { question: "Why do we check for CUDA?", answer: "It lets us use GPU acceleration if available, like in Colab." },
+            { question: "What if CUDA isn’t available?", answer: "It falls back to CPU, slowing down training." },
+
+            // 19. model.to(device)
+            { question: "How do you move the model to the chosen device?", answer: "model.to(device)" },
+            { question: "Why do we move the model to the device?", answer: "It ensures computations happen on GPU/CPU as selected." },
+            { question: "What if you skip this step?", answer: "The model stays on CPU, ignoring GPU even if available." },
+
+            // 20. from torch.utils.data import DataLoader
+            { question: "How do you import DataLoader from PyTorch?", answer: "from torch.utils.data import DataLoader" },
+            { question: "Why do we need DataLoader?", answer: "It batches and shuffles data for efficient training." },
+            { question: "What if you don’t import DataLoader?", answer: "You’d have to batch manually, complicating the code." },
+
+            // 21. train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
+            { question: "How do you create a DataLoader for training with batch size 16?", answer: "train_loader = DataLoader(train_data, batch_size=16, shuffle=True)" },
+            { question: "Why do we shuffle the training data?", answer: "Shuffling prevents order-based biases, improving generalization." },
+            { question: "What if you set batch_size to 8?", answer: "Smaller batches reduce memory use but slow training." },
+
+            // 22. test_loader = DataLoader(test_data, batch_size=16)
+            { question: "How do you create a DataLoader for testing with batch size 16?", answer: "test_loader = DataLoader(test_data, batch_size=16)" },
+            { question: "Why don’t we shuffle the test loader?", answer: "Order doesn’t affect evaluation, so shuffling is unnecessary." },
+            { question: "What if you add shuffle=True to test_loader?", answer: "It’d work fine but waste compute randomizing order." },
+
+            // 23. optimizer = AdamW(model.parameters(), lr=2e-5)
+            { question: "How do you initialize the AdamW optimizer for BERT?", answer: "optimizer = AdamW(model.parameters(), lr=2e-5)" },
+            { question: "Why do we use lr=2e-5?", answer: "It’s small enough to fine-tune BERT without ruining pre-trained weights." },
+            { question: "What if you set lr to 0.01?", answer: "Too high—it’d likely cause catastrophic forgetting." },
+
+            // 24. model.train()
+            { question: "How do you set the model to training mode?", answer: "model.train()" },
+            { question: "Why do we call model.train()?", answer: "It enables dropout and batch norm, needed for training." },
+            { question: "What if you skip this step?", answer: "Dropout stays off, reducing regularization." },
+
+            // 25. for epoch in range(2):
+            { question: "How do you start a loop for 2 epochs?", answer: "for epoch in range(2):" },
+            { question: "Why do we use 2 epochs?", answer: "It’s a quick test; BERT often fine-tunes fast." },
+            { question: "What if you increase to 5 epochs?", answer: "More training, but risk overfitting on small data." },
+
+            // 26. for batch in train_loader:
+            { question: "How do you iterate over batches in the training loader?", answer: "for batch in train_loader:" },
+            { question: "Why do we loop over train_loader?", answer: "It processes data in batches for efficient training." },
+            { question: "What if you skip batching?", answer: "You’d need to process all data at once, crashing memory." },
+
+            // 27. input_ids = batch["input_ids"].to(device)
+            { question: "How do you move input IDs to the device?", answer: "input_ids = batch[\"input_ids\"].to(device)" },
+            { question: "Why do we move input_ids to the device?", answer: "It aligns data with the model’s location (GPU/CPU)." },
+            { question: "What if you don’t move input_ids?", answer: "Device mismatch error—data and model must be on the same device." },
+
+            // 28. attention_mask = batch["attention_mask"].to(device)
+            { question: "How do you move attention masks to the device?", answer: "attention_mask = batch[\"attention_mask\"].to(device)" },
+            { question: "Why do we need attention masks on the device?", answer: "They tell BERT which tokens to process, must match model location." },
+            { question: "What if you forget this step?", answer: "Device mismatch would halt training." },
+
+            // 29. labels = batch["label"].to(device)
+            { question: "How do you move labels to the device?", answer: "labels = batch[\"label\"].to(device)" },
+            { question: "Why do we move labels to the device?", answer: "Loss computation needs labels on the same device as model outputs." },
+            { question: "What if labels stay on CPU?", answer: "Training fails due to device inconsistency." },
+
+            // 30. outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            { question: "How do you run the model forward during training?", answer: "outputs = model(input_ids, attention_mask=attention_mask, labels=labels)" },
+            { question: "Why do we pass labels here?", answer: "It computes loss automatically for supervised learning." },
+            { question: "What if you omit labels?", answer: "No loss computed—training wouldn’t work." },
+
+            // 31. loss = outputs.loss
+            { question: "How do you extract the loss from model outputs?", answer: "loss = outputs.loss" },
+            { question: "Why do we extract loss?", answer: "It’s the error to minimize during training." },
+            { question: "What if you skip this?", answer: "No loss to backpropagate, halting optimization." },
+
+            // 32. loss.backward()
+            { question: "How do you compute gradients during training?", answer: "loss.backward()" },
+            { question: "Why do we call loss.backward()?", answer: "It calculates gradients for all trainable parameters." },
+            { question: "What if you skip backpropagation?", answer: "Weights don’t update—model doesn’t learn." },
+
+            // 33. optimizer.step()
+            { question: "How do you update model weights with the optimizer?", answer: "optimizer.step()" },
+            { question: "Why do we use optimizer.step()?", answer: "It applies gradients to adjust weights." },
+            { question: "What if you skip this step?", answer: "Gradients compute but weights don’t change." },
+
+            // 34. optimizer.zero_grad()
+            { question: "How do you clear gradients after an update?", answer: "optimizer.zero_grad()" },
+            { question: "Why do we zero gradients?", answer: "Prevents gradients from accumulating across batches." },
+            { question: "What if you don’t clear gradients?", answer: "Gradients stack, skewing updates." },
+
+            // 35. print(f"Epoch {epoch}, Loss: {loss.item()}")
+            { question: "How do you print the training loss?", answer: "print(f\"Epoch {epoch}, Loss: {loss.item()}\")" },
+            { question: "Why do we print the loss?", answer: "It monitors training progress and debugging." },
+            { question: "What if you remove this line?", answer: "Training continues silently—no progress feedback." },
+
+            // 36. model.eval()
+            { question: "How do you set the model to evaluation mode?", answer: "model.eval()" },
+            { question: "Why do we switch to eval mode?", answer: "It disables dropout and batch norm for consistent inference." },
+            { question: "What if you skip eval mode?", answer: "Dropout stays active, skewing predictions." },
+
+            // 37. correct = 0
+            { question: "How do you initialize a counter for correct predictions?", answer: "correct = 0" },
+            { question: "Why do we track correct predictions?", answer: "It’s used to compute accuracy on the test set." },
+            { question: "What if you forget to initialize it?", answer: "Variable undefined—code crashes." },
+
+            // 38. total = 0
+            { question: "How do you initialize a counter for total samples?", answer: "total = 0" },
+            { question: "Why do we track total samples?", answer: "It’s the denominator for accuracy calculation." },
+            { question: "What if you skip this?", answer: "Undefined variable—accuracy fails." },
+
+            // 39. with torch.no_grad():
+            { question: "How do you disable gradient computation during evaluation?", answer: "with torch.no_grad():" },
+            { question: "Why do we use torch.no_grad()?", answer: "It saves memory and speeds up inference." },
+            { question: "What if you omit no_grad()?", answer: "Gradients compute unnecessarily, slowing evaluation." },
+
+            // 40. for batch in test_loader:
+            { question: "How do you iterate over batches in the test loader?", answer: "for batch in test_loader:" },
+            { question: "Why do we loop over test_loader?", answer: "It evaluates the model batch-by-batch." },
+            { question: "What if you skip batching here?", answer: "You’d need all test data at once, risking memory issues." },
+
+            // 41. input_ids = batch["input_ids"].to(device)
+            { question: "How do you move test input IDs to the device?", answer: "input_ids = batch[\"input_ids\"].to(device)" },
+            { question: "Why move input_ids in evaluation?", answer: "Ensures data aligns with model’s device." },
+            { question: "What if you skip this in eval?", answer: "Device mismatch crashes inference." },
+
+            // 42. attention_mask = batch["attention_mask"].to(device)
+            { question: "How do you move test attention masks to the device?", answer: "attention_mask = batch[\"attention_mask\"].to(device)" },
+            { question: "Why move attention masks in eval?", answer: "BERT needs them on the same device for processing." },
+            { question: "What if you forget this in eval?", answer: "Device mismatch halts evaluation." },
+
+            // 43. labels = batch["label"].to(device)
+            { question: "How do you move test labels to the device?", answer: "labels = batch[\"label\"].to(device)" },
+            { question: "Why move labels in evaluation?", answer: "Needed for accuracy comparison on the same device." },
+            { question: "What if you skip this in eval?", answer: "Device mismatch breaks comparison." },
+
+            // 44. outputs = model(input_ids, attention_mask=attention_mask)
+            { question: "How do you run the model forward during evaluation?", answer: "outputs = model(input_ids, attention_mask=attention_mask)" },
+            { question: "Why omit labels in eval forward pass?", answer: "We’re predicting, not training—no loss needed." },
+            { question: "What if you include labels here?", answer: "It’d compute loss unnecessarily but still work." },
+
+            // 45. predictions = torch.argmax(outputs.logits, dim=1)
+            { question: "How do you compute predictions from model logits?", answer: "predictions = torch.argmax(outputs.logits, dim=1)" },
+            { question: "Why use argmax on logits?", answer: "It picks the highest-scoring class (0 or 1) as the prediction." },
+            { question: "What if you use dim=0 instead?", answer: "Wrong dimension—predictions would be incorrect." },
+
+            // 46. correct += (predictions == labels).sum().item()
+            { question: "How do you count correct predictions?", answer: "correct += (predictions == labels).sum().item()" },
+            { question: "Why use sum().item() here?", answer: "It counts matches and converts the tensor to a Python number." },
+            { question: "What if you skip item()?", answer: "You’d accumulate tensors, not scalars—code breaks later." },
+
+            // 47. total += labels.size(0)
+            { question: "How do you count total samples in a batch?", answer: "total += labels.size(0)" },
+            { question: "Why use size(0) for total?", answer: "It gets the batch size (first dimension) of the labels tensor." },
+            { question: "What if you use size(1) instead?", answer: "Wrong dimension—total would be incorrect." },
+
+            // 48. accuracy = correct / total
+            { question: "How do you calculate accuracy?", answer: "accuracy = correct / total" },
+            { question: "Why compute accuracy this way?", answer: "It’s the ratio of correct predictions to total samples." },
+            { question: "What if total is zero?", answer: "Division by zero error—code crashes." },
+
+            // 49. print(f"Accuracy: {accuracy}")
+            { question: "How do you print the accuracy?", answer: "print(f\"Accuracy: {accuracy}\")" },
+            { question: "Why print accuracy?", answer: "It shows how well the model performs on the test set." },
+            { question: "What if you skip printing?", answer: "Evaluation runs silently—no output to see." },
+
+            // 50. model.save_pretrained("fine_tuned_bert")
+            { question: "How do you save the fine-tuned BERT model?", answer: "model.save_pretrained(\"fine_tuned_bert\")" },
+            { question: "Why save the model?", answer: "It lets you reuse the fine-tuned weights later." },
+            { question: "What if you change the save path?", answer: "It’d save elsewhere, e.g., 'my_bert'—just update the path." },
+
+            // 51. tokenizer.save_pretrained("fine_tuned_bert")
+            { question: "How do you save the tokenizer?", answer: "tokenizer.save_pretrained(\"fine_tuned_bert\")" },
+            { question: "Why save the tokenizer?", answer: "It ensures you can preprocess new inputs consistently." },
+            { question: "What if you don’t save the tokenizer?", answer: "You’d need to recreate it, risking mismatches." },
+
+             // Continuing from line 36: model.eval() (3 more questions to deepen it)
+            { question: "How would you verify the model is in evaluation mode after calling model.eval()?", answer: "Check model.training—it should be False after model.eval()." },
+            { question: "Why might model.eval() affect prediction consistency?", answer: "It disables dropout, ensuring the same input always gets the same output." },
+            { question: "What if you call model.train() instead of model.eval() during evaluation?", answer: "Dropout stays active, making predictions inconsistent." },
+
+            // Line 37: correct = 0 (2 more questions)
+            { question: "Why initialize correct to 0 before evaluation?", answer: "It resets the counter for a fresh accuracy calculation." },
+            { question: "What if you initialize correct to 10 instead of 0?", answer: "Accuracy would be artificially inflated by 10 correct predictions." },
+
+            // Line 38: total = 0 (2 more questions)
+            { question: "Why set total to 0 at the start of evaluation?", answer: "It ensures we count only the current test set samples." },
+            { question: "What if total starts at 1000?", answer: "Accuracy would be skewed lower due to an inflated denominator." },
+
+            // Line 39: with torch.no_grad(): (2 more questions)
+            { question: "How does torch.no_grad() affect memory usage?", answer: "It prevents storing gradients, reducing memory during evaluation." },
+            { question: "What if you remove torch.no_grad() from evaluation?", answer: "Gradients compute and accumulate, slowing down and using more memory." },
+
+            // Line 40: for batch in test_loader: (2 more questions)
+            { question: "Why process test_loader in batches instead of all at once?", answer: "Batching avoids loading the entire test set into memory." },
+            { question: "What if you loop over train_loader instead of test_loader?", answer: "You’d evaluate on training data, overfitting the metric." },
+
+            // Line 41: input_ids = batch["input_ids"].to(device) (2 more questions)
+            { question: "Why access 'input_ids' from the batch dictionary?", answer: "It’s the tokenized input tensor BERT needs for inference." },
+            { question: "What if input_ids isn’t moved to the device?", answer: "Device mismatch error—model and data must align." },
+
+            // Line 42: attention_mask = batch["attention_mask"].to(device) (2 more questions)
+            { question: "Why is attention_mask critical during evaluation?", answer: "It tells BERT which tokens to attend to, matching training behavior." },
+            { question: "What if attention_mask is all zeros?", answer: "BERT would ignore all tokens, producing nonsense predictions." },
+
+            // Line 43: labels = batch["label"].to(device) (2 more questions)
+            { question: "Why do we need labels during evaluation?", answer: "They’re compared to predictions to calculate accuracy." },
+            { question: "What if labels are missing from the batch?", answer: "You’d need to skip accuracy calc or use a different metric." },
+
+            // Line 44: outputs = model(input_ids, attention_mask=attention_mask) (3 more questions)
+            { question: "How do you interpret outputs from the model in eval?", answer: "Outputs contain logits—raw scores for each class." },
+            { question: "Why exclude labels in the eval forward pass?", answer: "We’re predicting, not training—no loss is needed." },
+            { question: "What if you pass incorrect attention_mask here?", answer: "Predictions would be garbage due to wrong token focus." },
+
+            // Line 45: predictions = torch.argmax(outputs.logits, dim=1) (3 more questions)
+            { question: "Why use dim=1 in torch.argmax?", answer: "It selects the max across class scores (dimension 1), not batches." },
+            { question: "What if you use outputs instead of outputs.logits?", answer: "Error—outputs is an object; logits is the tensor we need." },
+            { question: "How would you get probabilities instead of class predictions?", answer: "Use torch.softmax(outputs.logits, dim=1) instead of argmax." },
+
+            // Line 46: correct += (predictions == labels).sum().item() (3 more questions)
+            { question: "Why compare predictions to labels with ==?", answer: "It creates a boolean tensor of correct/incorrect predictions." },
+            { question: "What if you forget .item() in this line?", answer: "correct becomes a tensor, breaking scalar addition later." },
+            { question: "How would you count incorrect predictions instead?", answer: "Use correct += (predictions != labels).sum().item()." },
+
+            // Line 47: total += labels.size(0) (3 more questions)
+            { question: "Why use labels.size(0) instead of a fixed number?", answer: "It dynamically gets the batch size, handling variable batches." },
+            { question: "What if you hardcode total += 16?", answer: "Wrong count if batch size differs (e.g., last batch)." },
+            { question: "How would you verify total matches test set size?", answer: "Compare total to len(test_data) after the loop." },
+
+            // Line 48: accuracy = correct / total (3 more questions)
+            { question: "Why divide correct by total?", answer: "It gives the proportion of correct predictions—accuracy." },
+            { question: "What if total is zero here?", answer: "Division by zero error—ensure test data isn’t empty." },
+            { question: "How would you compute error rate instead?", answer: "Use (total - correct) / total." },
+
+            // Line 49: print(f"Accuracy: {accuracy}") (3 more questions)
+            { question: "Why use an f-string to print accuracy?", answer: "It formats the accuracy value into a readable string." },
+            { question: "What if you print accuracy without f-string?", answer: "print(accuracy) works but lacks context." },
+            { question: "How would you log accuracy to a file instead?", answer: "Use with open('log.txt', 'a') as f: f.write(f'Accuracy: {accuracy}\\n')." },
+
+            // Line 50: model.save_pretrained("fine_tuned_bert") (3 more questions)
+            { question: "Why does save_pretrained save multiple files?", answer: "It saves model weights, config, and vocab separately." },
+            { question: "What if you save to a different directory?", answer: "Change to model.save_pretrained('new_path')—same structure." },
+            { question: "How do you load the saved model later?", answer: "model = BertForSequenceClassification.from_pretrained('fine_tuned_bert')" },
+
+            // Line 51: tokenizer.save_pretrained("fine_tuned_bert") (3 more questions)
+            { question: "Why save the tokenizer with the model?", answer: "It ensures consistent tokenization for future use." },
+            { question: "What if you save tokenizer to a different path?", answer: "Use tokenizer.save_pretrained('other_path')—just update it." },
+            { question: "How do you load the saved tokenizer?", answer: "tokenizer = BertTokenizer.from_pretrained('fine_tuned_bert')" },
+
+            // Extra questions for earlier lines to hit 210
+            // Line 1: !pip install transformers datasets torch
+            { question: "What if you install an older transformers version?", answer: "Some features might break—use !pip install transformers==4.28.0 for stability." },
+            // Line 7: dataset = load_dataset("imdb")
+            { question: "How would you load a subset of IMDb?", answer: "dataset = load_dataset('imdb', split='train[:1000]') for 1000 samples." },
+            // Line 17: model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+            { question: "What if you use 'bert-large-uncased' instead?", answer: "More parameters, better accuracy, but slower and memory-heavy." },
+            // Line 23: optimizer = AdamW(model.parameters(), lr=2e-5)
+            { question: "How would you add a learning rate scheduler?", answer: "from transformers import get_linear_schedule_with_warmup; scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=1000)" },
+            // Line 30: outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            { question: "What if you want model outputs without loss?", answer: "Use outputs = model(input_ids, attention_mask=attention_mask) without labels." }
+
+        ];
+
+           
+        let currentCard = 0;
+
+        function displayCard() {
+            const card = flashcards[currentCard];
+            document.getElementById("question").textContent = card.question;
+            document.getElementById("answer").textContent = card.answer;
+            document.getElementById("flashcard").classList.remove("flipped");
+            document.getElementById("counter").textContent = `Card ${currentCard + 1} of ${flashcards.length}`;
+        }
+
+        function flipCard() {
+            document.getElementById("flashcard").classList.toggle("flipped");
+        }
+
+        function nextCard() {
+            currentCard = (currentCard + 1) % flashcards.length;
+            displayCard();
+        }
+
+        function prevCard() {
+            currentCard = (currentCard - 1 + flashcards.length) % flashcards.length;
+            displayCard();
+        }
+
+        // Initial display
+        displayCard();
+
+        // Flip on click
+        document.getElementById("flashcard").addEventListener("click", flipCard);
+    </script>
+</body>
+</html>
